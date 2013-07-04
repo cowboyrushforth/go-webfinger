@@ -99,13 +99,18 @@ func (r *Resource) String() string {
 // JRDURL returns the WebFinger query URL at the specified host for this
 // resource.  If host is an empty string, the default host for the resource
 // will be used, as returned from WebFingerHost().
-func (r *Resource) JRDURL(host string, rels []string) *url.URL {
+func (r *Resource) JRDURL(host string, rels []string, use_http bool) *url.URL {
 	if host == "" {
 		host = r.WebFingerHost()
 	}
 
+        scheme := "https"
+        if use_http {
+          scheme = "http"
+        }
+
 	return &url.URL{
-		Scheme: "https",
+		Scheme: scheme,
 		Host:   host,
 		Path:   "/.well-known/webfinger",
 		RawQuery: url.Values{
@@ -167,20 +172,48 @@ func (c *Client) Lookup(identifier string, rels []string) (*jrd.JRD, error) {
 		return nil, err
 	}
 
-	return c.LookupResource(resource, rels)
+	return c.LookupResource(resource, rels, false)
+}
+
+// LookupInsecure returns the JRD for the specified identifier.  If provided, only the
+// specified rel values will be requested, though WebFinger servers are not
+// obligated to respect that request.
+// allows http via fallback
+func (c *Client) LookupInsecure(identifier string, rels []string) (*jrd.JRD, error) {
+	resource, err := Parse(identifier)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.LookupResource(resource, rels, true)
 }
 
 // LookupResource returns the JRD for the specified Resource.  If provided,
 // only the specified rel values will be requested, though WebFinger servers
 // are not obligated to respect that request.
-func (c *Client) LookupResource(resource *Resource, rels []string) (*jrd.JRD, error) {
+func (c *Client) LookupResource(resource *Resource, rels []string, allow_insecure bool) (*jrd.JRD, error) {
 	log.Printf("Looking up WebFinger data for %s", resource)
 
-	resourceJRD, err := c.fetchJRD(resource.JRDURL("", rels))
-	if err != nil {
-		log.Print(err)
-                jrd, errb := c.LegacyGetJRD(resource)
+        // lookup ssl modern url first
+	resourceJRD, err := c.fetchJRD(resource.JRDURL("", rels, false))
+        if err != nil {
+          log.Print(err)
+
+          // if we dont allow fallback to http
+          // then fallback to legacy https
+          if allow_insecure == false {
+            jrd, errb := c.LegacyGetJRD(resource, false)
+            return jrd, errb
+
+          // try to fallback to modern http
+          } else {
+             resourceJRD, err = c.fetchJRD(resource.JRDURL("", rels, true)) 
+             if err != nil {
+                jrd, errb := c.LegacyGetJRD(resource, true)
                 return jrd, errb
+
+             }
+          }
 	}
 
 	return resourceJRD, nil

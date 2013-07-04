@@ -26,22 +26,27 @@ func (self *Client) findJRD(urls []string) (*jrd.JRD, error) {
 }
 
 // LegacyHostJRDURLs builds a series of well known host JRD URLs from the domain.
-func (self *Client) LegacyHostJRDURLs(domain string) []string {
-	return []string{
-		// first JRD implementation
-		"https://" + domain + "/.well-known/host-meta.json",
-		// orignal spec: https://code.google.com/p/webfinger/wiki/WebFingerProtocol
-		"https://" + domain + "/.well-known/host-meta",
-	}
+func (self *Client) LegacyHostJRDURLs(domain string, allow_insecure bool) []string {
+  r := []string{
+    // first JRD implementation
+    "https://" + domain + "/.well-known/host-meta.json",
+    // orignal spec: https://code.google.com/p/webfinger/wiki/WebFingerProtocol
+    "https://" + domain + "/.well-known/host-meta",
+  }
+  if allow_insecure {
+    r = append(r, "http://" + domain + "/.well-known/host-meta.json")
+    r = append(r, "http://" + domain + "/.well-known/host-meta")
+  }
+  return r
 }
 
 // LegacyGetResourceJRDTemplateURL gets the host meta JRD data for the specified domain,
 // and returns the LRDD resource JRD template URL.
 // It tries all the urls returned by client.LegacyHostJRDURLs.
-func (self *Client) LegacyGetResourceJRDTemplateURL(domain string) (string, error) {
+func (self *Client) LegacyGetResourceJRDTemplateURL(domain string, allow_insecure bool) (string, error) {
 	// TODO implement heavy HTTP cache around this
 
-	urls := self.LegacyHostJRDURLs(domain)
+	urls := self.LegacyHostJRDURLs(domain, allow_insecure)
 
 	hostJRD, err := self.findJRD(urls)
 	if err != nil {
@@ -70,9 +75,9 @@ func (self *Resource) AsURIString() string {
 // LegacyGetJRD gets the JRD data for this resource.
 // Implement the original WebFinger API, ie: first fetch the Host metadata,
 // find the LRDD link, fetch the resource data and convert the XRD in JRD if necessary.
-func (self *Client) LegacyGetJRD(resource *Resource) (*jrd.JRD, error) {
+func (self *Client) LegacyGetJRD(resource *Resource, allow_insecure bool) (*jrd.JRD, error) {
 
-	template, err := self.LegacyGetResourceJRDTemplateURL(resource.WebFingerHost())
+	template, err := self.LegacyGetResourceJRDTemplateURL(resource.WebFingerHost(), allow_insecure)
 	if err != nil {
 		return nil, err
 	}

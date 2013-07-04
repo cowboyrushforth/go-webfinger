@@ -13,7 +13,7 @@ const (
 )
 
 func (c *Client) webfistLookup(resource *Resource) (*jrd.JRD, error) {
-	jrdURL := resource.JRDURL(c.WebFistServer, nil)
+	jrdURL := resource.JRDURL(c.WebFistServer, nil, false)
 	webfistJRD, err := c.fetchJRD(jrdURL)
 	if err != nil {
 		return nil, err
