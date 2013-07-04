@@ -15,6 +15,7 @@ type JRD struct {
 	Aliases    []string               `json:"aliases,omitempty"`
 	Properties map[string]interface{} `json:"properties,omitempty"`
 	Links      []Link                 `json:"links,omitempty"`
+        Expires   string
 }
 
 // Link is a link to a related resource.
@@ -24,6 +25,7 @@ type Link struct {
 	Href       string                 `json:"href,omitempty"`
 	Titles     map[string]string      `json:"titles,omitempty"`
 	Properties map[string]interface{} `json:"properties,omitempty"`
+        Template   string
 }
 
 // ParseJRD parses the JRD using json.Unmarshal.

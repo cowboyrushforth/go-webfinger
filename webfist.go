@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-
-	"github.com/ant0ine/go-webfinger/jrd"
+	"github.com/cowboyrushforth/go-webfinger/jrd"
 )
 
 const (

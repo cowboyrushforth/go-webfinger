@@ -8,8 +8,7 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
-
-	"github.com/ant0ine/go-webfinger/jrd"
+	"github.com/cowboyrushforth/go-webfinger/jrd"
 )
 
 var (

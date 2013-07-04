@@ -39,7 +39,8 @@ package webfinger
 import (
 	"errors"
 	"fmt"
-	"github.com/ant0ine/go-webfinger/jrd"
+	"github.com/cowboyrushforth/go-webfinger/jrd"
+	"github.com/cowboyrushforth/go-webfinger/xrd"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -114,6 +115,7 @@ func (r *Resource) JRDURL(host string, rels []string) *url.URL {
 	}
 }
 
+
 // A Client is a WebFinger client.
 type Client struct {
 	// HTTP client used to perform WebFinger lookups.
@@ -177,16 +179,8 @@ func (c *Client) LookupResource(resource *Resource, rels []string) (*jrd.JRD, er
 	resourceJRD, err := c.fetchJRD(resource.JRDURL("", rels))
 	if err != nil {
 		log.Print(err)
-
-		// Fallback to WebFist protocol
-		if c.WebFistServer != "" {
-			log.Print("Falling back to WebFist protocol")
-			resourceJRD, err = c.webfistLookup(resource)
-		}
-
-		if err != nil {
-			return nil, err
-		}
+                jrd, errb := c.LegacyGetJRD(resource)
+                return jrd, errb
 	}
 
 	return resourceJRD, nil
@@ -234,7 +228,16 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 			return nil, err
 		}
 		return parsed, nil
-	}
+         } else if strings.Contains(ct, "application/xrd+xml") ||
+                strings.Contains(ct, "application/xml") ||
+                strings.Contains(ct, "text/xml") ||
+                strings.Contains(ct, "text/html") {
+                parsed, err := xrd.ParseXRD(content)
+                if err != nil {
+                        return nil, err
+                }
+                return parsed.ConvertToJRD(), nil
+        }
 
 	return nil, errors.New(fmt.Sprintf("invalid content-type: %s", ct))
 }
